@@ -110,7 +110,7 @@ class nn_model:
         return self.model.predict(x_test)
 
 def scheduler(epoch):
-    if epoch <= 10:
+    if epoch <= 2:
         return 1e-3
     elif epoch <= 20:
         return 1e-4
