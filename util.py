@@ -43,7 +43,7 @@ def train_set_prepare(data, target, random_state=1):
     x_train, x_val, y_train, y_val = train_test_split(data, target, test_size = 0.2, random_state=random_state)
     return x_train, y_train, x_val, y_val, x_test, y_test
 
-def land_map(data, target, bar_label='Default bar', clim=None, step=None):
+def land_map(data, target, save_path, bar_label='Default bar', clim=None, step=None):
     lat_longi = data[:,6:]
     fig = plt.figure(figsize=(10,10))
     plt.grid()
@@ -59,7 +59,9 @@ def land_map(data, target, bar_label='Default bar', clim=None, step=None):
         plt.clim(clim[0], clim[1])
     cbar = plt.colorbar(cmap=cmap)
     cbar.set_label(bar_label)
+    plt.savefig(save_path)
     plt.show()
+
     
 def plot_pred_true(x, y, y_pred):
     # Check the linearity between y and y_pred
@@ -74,28 +76,23 @@ class nn_model:
         self.target = target
         self.model = None
         self.history = None
-    def build_model(self):
-        input_ = layers.Input(shape = self.data.shape[1])
-        hidden1 = layers.Dense(1024, activation="tanh",
-                               kernel_regularizer=tf.keras.regularizers.l2(1e-6))(input_)
-        hidden2 = layers.Dense(512, activation="tanh",
-                              kernel_regularizer=tf.keras.regularizers.l2(1e-6))(hidden1)
-        hidden3 = layers.Dense(512, activation="tanh",
-                              kernel_regularizer=tf.keras.regularizers.l2(1e-6))(hidden2)
-        hidden4 = layers.Dense(256, activation="tanh",
-                              kernel_regularizer=tf.keras.regularizers.l2(1e-6))(hidden3)
-        hidden5 = layers.Dense(256, activation="tanh",
-                              kernel_regularizer=tf.keras.regularizers.l2(1e-6))(hidden4)
-        hidden6 = layers.Dense(64, activation="tanh",
-                              kernel_regularizer=tf.keras.regularizers.l2(1e-6))(hidden5)
-        hidden7 = layers.Dense(32, activation="tanh",
-                              kernel_regularizer=tf.keras.regularizers.l2(1e-6))(hidden6)
-        hidden8 = layers.Dense(8, activation="tanh",
-                      kernel_regularizer=tf.keras.regularizers.l2(1e-6))(hidden7)
-        output = layers.Dense(1, activation="linear",
-                             kernel_regularizer=tf.keras.regularizers.l2(1e-6))(hidden8)
+    def build_model(self, neuron_list, reg_factor):
         
-        self.model = Model(inputs=[input_], outputs=[output])
+        model = tf.keras.models.Sequential()
+        model.add(layers.InputLayer(self.data.shape[1]))
+        
+        for ii in range(len(neuron_list)):
+            model.add(layers.Dense(neuron_list[ii], activation="tanh",
+                                   kernel_initializer="he_normal",
+                               kernel_regularizer=tf.keras.regularizers.l2(reg_factor)))
+
+        model.add(layers.Dense(1, activation="linear",
+                             kernel_regularizer=tf.keras.regularizers.l2(reg_factor)))
+        
+        self.model = model
+        self.neuron_list = neuron_list
+        self.reg_factor = reg_factor
+        
     def compile_model(self, optimizer="Adam", loss="mse", metrics=["mse"]):
         self.model.compile(optimizer=optimizer,
                           loss=loss,
@@ -108,6 +105,9 @@ class nn_model:
                                      validation_data=(x_val, y_val))
     def test(self, x_test, y_test):
         return self.model.predict(x_test)
+    def load(self, path):
+        self.build_model(self.neuron_list, self.reg_factor)
+        self.model.load_weights(path)
 
 def scheduler(epoch):
     if epoch <= 2:
