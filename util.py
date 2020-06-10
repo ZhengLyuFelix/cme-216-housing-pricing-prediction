@@ -2,11 +2,12 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
+import pandas
 from sklearn.datasets import fetch_california_housing
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers, Model
 
-def download_skl_dataset(path, return_X_y = False):
+def download_skl_dataset(path, return_X_y = False, as_frame=False):
     if os.path.isdir(path):
         if return_X_y:
             return fetch_california_housing(path, 'return_X_y', True)
@@ -40,7 +41,7 @@ def feature_normalization(data, log_flag = False):
 
 def train_set_prepare(data, target, random_state=1):
     x_train_val, x_test, y_train_val, y_test = train_test_split(data, target, test_size=0.2, random_state=random_state)
-    x_train, x_val, y_train, y_val = train_test_split(data, target, test_size = 0.2, random_state=random_state)
+    x_train, x_val, y_train, y_val = train_test_split(x_train_val, y_train_val, test_size = 0.2, random_state=random_state)
     return x_train, y_train, x_val, y_val, x_test, y_test
 
 def land_map(data, target, save_path, bar_label='Default bar', clim=None, step=None):
